@@ -1,8 +1,5 @@
 // DS1302
-#include "iarduino_RTC.h"
-// Info
-// https://lesson.iarduino.ru/page/podklyuchenie-rtc-chasy-realnogo-vremeni-ds1302-ds1307-ds3231-k-arduino/
-// http://iarduino.ru/file/235.html
+#include "DS1302.h" // Only for 3.3v https://www.youtube.com/watch?v=jG0sbB4tD04
 
 // DHT22
 #include "Adafruit_Sensor.h"
@@ -17,14 +14,13 @@
 
 // Инициализация
 DHT dht(DHTPIN, DHT22);
-iarduino_RTC rtc(RTC_DS1302, 4, 2, 3); // RST (SCLK, Serial Clock) pin, CLK (CE, Chip Enable) pin, DATA (I/O, Input/Output) pin
+DS1302 rtc(4, 3, 2); // RST (CE, Chip Enable) pin, DATA (I/O, Input/Output) pin, CLK (SCLK, Serial Clock) pin
 
 
 void setup() {
   logSetup();
   tempMonHumSetup();
   rtcSetup();
-  rtc.settime(0, 39, 10, 6, 11, 17, 0); // sec, min, hours, day, month, year, day of week
   log("Start");
 }
 
@@ -36,7 +32,15 @@ void loop() {
 
 
 void tempMonHumSetup() { dht.begin(); }
-void rtcSetup() { rtc.begin(); }
+void rtcSetup() { 
+  // Set the clock to run-mode, and disable the write protection
+  //rtc.halt(false);
+  //rtc.writeProtect(false);
+  // The following lines can be commented out to use the values already stored in the DS1302
+  //rtc.setDOW(FRIDAY);        // Set Day-of-Week to FRIDAY
+  //rtc.setTime(13, 35, 0);     // Set the time to 12:00:00 (24hr format)
+  //rtc.setDate(6, 11, 2017);   // Set the date to August 6th, 2010
+}
 
 
 
@@ -56,7 +60,19 @@ void tempMonHumCycle()
 
 void rtcCycle()
 {
-  Serial.println(rtc.gettime("d-m-Y, H:i:s, D"));
+  // Send Day-of-Week
+  Serial.print(rtc.getDOWStr());
+  Serial.print(" ");
+  
+  // Send date
+  Serial.print(rtc.getDateStr());
+  Serial.print(" -- ");
+
+  // Send time
+  Serial.println(rtc.getTimeStr());
+  
+  // Wait one second before repeating :)
+  delay (1000);
   delay(2000);
 }
 
