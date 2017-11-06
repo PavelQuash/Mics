@@ -1,7 +1,8 @@
-
-
 // DS1302
-#include "DS1302.h" // https://github.com/msparks/arduino-ds1302
+#include "iarduino_RTC.h"
+// Info
+// https://lesson.iarduino.ru/page/podklyuchenie-rtc-chasy-realnogo-vremeni-ds1302-ds1307-ds3231-k-arduino/
+// http://iarduino.ru/file/235.html
 
 // DHT22
 #include "Adafruit_Sensor.h"
@@ -16,12 +17,14 @@
 
 // Инициализация
 DHT dht(DHTPIN, DHT22);
-DS1302 rtc(2,3,4); // CLK (CE, Chip Enable) pin, DATA (I/O, Input/Output) pin, RST (SCLK, Serial Clock) pin
+iarduino_RTC rtc(RTC_DS1302, 4, 2, 3); // RST (SCLK, Serial Clock) pin, CLK (CE, Chip Enable) pin, DATA (I/O, Input/Output) pin
+
 
 void setup() {
   logSetup();
   tempMonHumSetup();
   rtcSetup();
+  rtc.settime(0, 39, 10, 6, 11, 17, 0); // sec, min, hours, day, month, year, day of week
   log("Start");
 }
 
@@ -33,18 +36,15 @@ void loop() {
 
 
 void tempMonHumSetup() { dht.begin(); }
-void rtcSetup() { 
-  rtc.writeProtect(false);
-  rtc.halt(false);
-  //Time t(2017, 11, 6, 10, 20, 00, Time::kSunday); // Make a new time object to set the date and time.
-  //rtc.time(t); // Set the time and date on the chip.
-}
+void rtcSetup() { rtc.begin(); }
+
+
 
 void tempMonHumCycle()
 {
   delay(2000); // Задержка 2 секунды между измерениями
-  float h = dht.readHumidity(); //Считываем влажность
-  float t = dht.readTemperature(); // Считываем температуру
+  float h = dht.readHumidity(); // Влажность
+  float t = dht.readTemperature(); // Температура
   if (isnan(h) || isnan(t)) { // Проверка удачно прошло ли считывание
     Serial.println("Can't read sensor data");
     return;
@@ -56,39 +56,8 @@ void tempMonHumCycle()
 
 void rtcCycle()
 {
-  printTime();
+  Serial.println(rtc.gettime("d-m-Y, H:i:s, D"));
   delay(2000);
-}
-
-void printTime() {
-  // Get the current time and date from the chip.
-  Time t = rtc.time();
-
-  // Name the day of the week.
-  const String day = dayAsString(t.day);
-
-  // Format the time and date and insert into the temporary buffer.
-  char buf[50];
-  snprintf(buf, sizeof(buf), "%s %04d-%02d-%02d %02d:%02d:%02d",
-           day.c_str(),
-           t.yr, t.mon, t.date,
-           t.hr, t.min, t.sec);
-
-  // Print the formatted string to serial so we can see the time.
-  Serial.println(buf);
-}
-
-String dayAsString(const Time::Day day) {
-  switch (day) {
-    case Time::kSunday: return "Sunday";
-    case Time::kMonday: return "Monday";
-    case Time::kTuesday: return "Tuesday";
-    case Time::kWednesday: return "Wednesday";
-    case Time::kThursday: return "Thursday";
-    case Time::kFriday: return "Friday";
-    case Time::kSaturday: return "Saturday";
-  }
-  return "(unknown day)";
 }
 
 
