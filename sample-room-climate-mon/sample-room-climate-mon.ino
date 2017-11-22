@@ -1,12 +1,13 @@
-// DS1302
-#include "DS1302.h" // Only for 3.3v https://www.youtube.com/watch?v=jG0sbB4tD04
+//#include "EEPROM.h"
 
+// DS1302
+#include <DS1302.h> // https://github.com/msparks/arduino-ds1302 (работает только на 3.3В)
 // DHT22
-#include "Adafruit_Sensor.h"
-#include "DHT.h"
+#include <Adafruit_Sensor.h>
+#include <DHT.h>
 // MQ135
 // BMP180
-//#include "EEPROM.h"
+
 
 #define DHTPIN 12 // номер пина, к которому подсоединен датчик
 #define MQPIN A7 // датчик CO2
@@ -18,65 +19,62 @@ DS1302 rtc(4, 3, 2); // RST (CE, Chip Enable) pin, DATA (I/O, Input/Output) pin,
 
 
 void setup() {
+  dht.begin(); // temp&hum
+  // co2
+  
+  // log
   logSetup();
-  tempMonHumSetup();
-  rtcSetup();
   log("Start");
 }
 
 void loop() {
-  //tempMonHumCycle();
-  rtcCycle();
-}
-
-
-
-void tempMonHumSetup() { dht.begin(); }
-void rtcSetup() { 
-  // Set the clock to run-mode, and disable the write protection
-  //rtc.halt(false);
-  //rtc.writeProtect(false);
-  // The following lines can be commented out to use the values already stored in the DS1302
-  //rtc.setDOW(FRIDAY);        // Set Day-of-Week to FRIDAY
-  //rtc.setTime(13, 35, 0);     // Set the time to 12:00:00 (24hr format)
-  //rtc.setDate(6, 11, 2017);   // Set the date to August 6th, 2010
-}
-
-
-
-void tempMonHumCycle()
-{
-  delay(2000); // Задержка 2 секунды между измерениями
+  delay(2000); // Задержка между измерениями
+  
+  // rtc
+  String date = getCurrentTime();
+  
+  // temp&hum
+  String tempAndHum;
   float h = dht.readHumidity(); // Влажность
   float t = dht.readTemperature(); // Температура
-  if (isnan(h) || isnan(t)) { // Проверка удачно прошло ли считывание
-    Serial.println("Can't read sensor data");
-    return;
-  }
-  Serial.println("Hum: " + String(h) + " %\t" + "Temp: " + String(t) + " *C ");
+  if (isnan(h) || isnan(t)) { tempAndHum = "Can't read sensor data"; }
+  else { tempAndHum = "Hum: " + String(h) + " %\t" + "Temp: " + String(t) + " *C "; }
+
+  // co2
+  String co2 = "?";
+  
+  Serial.println(date + "\t" + tempAndHum + "\t" + co2 + " ppm" + "\t");
 }
 
-
-
-void rtcCycle()
+String getCurrentTime()
 {
-  // Send Day-of-Week
-  Serial.print(rtc.getDOWStr());
-  Serial.print(" ");
-  
-  // Send date
-  Serial.print(rtc.getDateStr());
-  Serial.print(" -- ");
+  Time t = rtc.time();
 
-  // Send time
-  Serial.println(rtc.getTimeStr());
-  
-  // Wait one second before repeating :)
-  delay (1000);
-  delay(2000);
+  // Name the day of the week.
+  const String day = dayAsString(t.day);
+  // Format the time and date and insert into the temporary buffer.
+  char buf[50];
+  snprintf(buf, sizeof(buf), "%s %04d-%02d-%02d %02d:%02d:%02d",
+           day.c_str(),
+           t.yr, t.mon, t.date,
+           t.hr, t.min, t.sec);
+
+  // Print the formatted string to serial so we can see the time.
+  return buf;
 }
 
-
+String dayAsString(const Time::Day day) {
+  switch (day) {
+    case Time::kSunday: return "Sunday";
+    case Time::kMonday: return "Monday";
+    case Time::kTuesday: return "Tuesday";
+    case Time::kWednesday: return "Wednesday";
+    case Time::kThursday: return "Thursday";
+    case Time::kFriday: return "Friday";
+    case Time::kSaturday: return "Saturday";
+  }
+  return "(unknown day)";
+}
 
 void logSetup() { Serial.begin(9600); }
 void log(String message) { Serial.println(message); }
