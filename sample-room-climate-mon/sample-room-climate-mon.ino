@@ -5,22 +5,30 @@
 // DHT22
 #include <Adafruit_Sensor.h>
 #include <DHT.h>
-// MQ135
 // BMP180
 
 
-#define DHTPIN 12 // номер пина, к которому подсоединен датчик
-#define MQPIN A7 // датчик CO2
-#define RELAYPIN 11 // реле
+#define DHT_PIN 12 // номер пина, к которому подсоединен датчик
+#define RTC_RST_PIN 4 // часы реального времени
+#define RTC_DATA_PIN 3
+#define RTC_CLK_PIN 2
+#define CO2_PIN A7 // датчик CO2
+// реле
+#define RELAY_PIN 11
+#define RELAY_TURN_ON LOW
+#define RELAY_TUNRN_OFF HIGH
 
 // Инициализация
-DHT dht(DHTPIN, DHT22);
-DS1302 rtc(4, 3, 2); // RST (CE, Chip Enable) pin, DATA (I/O, Input/Output) pin, CLK (SCLK, Serial Clock) pin
+DHT dht(DHT_PIN, DHT22);
+DS1302 rtc(RTC_RST_PIN, RTC_DATA_PIN, RTC_CLK_PIN); // RST (CE, Chip Enable) pin, DATA (I/O, Input/Output) pin, CLK (SCLK, Serial Clock) pin
 
 
 void setup() {
   dht.begin(); // temp&hum
-  // co2
+  pinMode(CO2_PIN, INPUT); // co2
+  // relay
+  pinMode(RELAY_PIN, OUTPUT); 
+  digitalWrite(RELAY_PIN, HIGH);
   
   // log
   logSetup();
@@ -28,7 +36,7 @@ void setup() {
 }
 
 void loop() {
-  delay(2000); // Задержка между измерениями
+  delay(15000); // Задержка между измерениями
   
   // rtc
   String date = getCurrentTime();
@@ -40,10 +48,22 @@ void loop() {
   if (isnan(h) || isnan(t)) { tempAndHum = "Can't read sensor data"; }
   else { tempAndHum = "Hum: " + String(h) + " %\t" + "Temp: " + String(t) + " *C "; }
 
-  // co2
-  String co2 = "?";
+  float co2 = analogRead(CO2_PIN); // co2
+
+  // relay
+  bool relayStatus = !digitalRead(RELAY_PIN);
+  if (!relayStatus and (t < 25)) // if (!relayStatus and (h < 40))
+  {
+    digitalWrite(RELAY_PIN, RELAY_TURN_ON);
+    digitalWrite(13, HIGH);
+  }
+  else if (relayStatus and (t > 25)) // if (relayStatus and (h > 60))
+  {
+    digitalWrite(RELAY_PIN, RELAY_TUNRN_OFF);
+    digitalWrite(13, LOW);
+  } 
   
-  Serial.println(date + "\t" + tempAndHum + "\t" + co2 + " ppm" + "\t");
+  Serial.println(date + "\t" + tempAndHum + "\t" + String(co2) + " ppm?" + "\t");
 }
 
 String getCurrentTime()
