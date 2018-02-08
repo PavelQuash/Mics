@@ -5,7 +5,6 @@
 // DHT22
 #include <Adafruit_Sensor.h>
 #include <DHT.h>
-// BMP180
 
 
 #define DHT_PIN 12 // номер пина, к которому подсоединен датчик
